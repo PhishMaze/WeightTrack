@@ -1,0 +1,809 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Weight Tracker" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#121214" />
+<title>Weight Tracker</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    background: #121214;
+    color: #f5f5f7;
+    padding: 20px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px 0; }
+  .subtitle { color: #98989d; font-size: 13px; margin-bottom: 20px; }
+
+  .banner {
+    background: #3a2c0f;
+    border: 1px solid #6b4e14;
+    color: #ffcc66;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .banner.hidden { display: none; }
+  .banner button {
+    background: #ffcc66;
+    color: #1c1200;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #1e1e21;
+    border: 1px solid #303033;
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .stat-label { font-size: 11px; color: #98989d; text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 4px; }
+  .stat-value { font-size: 20px; font-weight: 600; color: #f5f5f7; }
+  .stat-value.pos { color: #ff6961; }
+  .stat-value.neg { color: #32d74b; }
+  .stat-sub { font-size: 11px; color: #98989d; margin-top: 2px; }
+
+  .card {
+    background: #1e1e21;
+    border: 1px solid #303033;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 18px;
+  }
+  .card h2 { font-size: 14px; margin: 0 0 12px 0; color: #f5f5f7; }
+  .card .card-sub { font-size: 11px; color: #98989d; margin: -8px 0 12px 0; }
+
+  .log-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: #98989d; }
+  .field input {
+    border: 1px solid #3a3a3d;
+    background: #2c2c2e;
+    color: #f5f5f7;
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .field input[type=number] { width: 100px; }
+  .log-form button {
+    background: #0a84ff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .log-form button:hover { background: #3396ff; }
+  .form-msg { font-size: 12px; color: #32d74b; margin-left: 4px; }
+
+  .chart-container { position: relative; height: 320px; }
+  .chart-container.small { height: 240px; }
+
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .toolbar h2 { margin: 0; }
+
+  .btn-small {
+    background: #2c2c2e;
+    color: #f5f5f7;
+    border: 1px solid #3a3a3d;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-small:hover { background: #3a3a3d; }
+
+  #weightChart { cursor: grab; touch-action: none; }
+
+  .range-label { font-size: 11px; color: #98989d; margin-top: 10px; text-align: center; }
+  .chart-hint { font-size: 11px; color: #5a5a5d; margin-top: 4px; text-align: center; }
+
+  .range-slider { position: relative; height: 28px; margin-top: 8px; }
+  .range-track {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #303033;
+    border-radius: 2px;
+    transform: translateY(-50%);
+  }
+  .range-fill {
+    position: absolute;
+    top: 50%;
+    height: 4px;
+    background: #0a84ff;
+    border-radius: 2px;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .range-slider input[type=range] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 28px;
+    margin: 0;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: none;
+  }
+  .range-slider input[type=range]::-webkit-slider-runnable-track {
+    -webkit-appearance: none;
+    height: 28px;
+    background: transparent;
+  }
+  .range-slider input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    pointer-events: auto;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0a84ff;
+    border: 2px solid #f5f5f7;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .range-slider input[type=range]::-moz-range-track {
+    height: 4px;
+    background: transparent;
+    border: none;
+  }
+  .range-slider input[type=range]::-moz-range-thumb {
+    pointer-events: auto;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #0a84ff;
+    border: 2px solid #f5f5f7;
+    cursor: pointer;
+  }
+
+  .export-card { text-align: center; }
+  .export-btn {
+    background: #2c2c2e;
+    color: #f5f5f7;
+    border: 1px solid #3a3a3d;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    font-family: inherit;
+  }
+  .export-btn:hover { background: #3a3a3d; }
+  .export-sub { font-size: 11px; color: #98989d; margin-top: 8px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid #2c2c2e; }
+  th { color: #98989d; font-weight: 500; font-size: 11px; text-transform: uppercase; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .delta { font-size: 12px; }
+  .delta.pos { color: #ff6961; }
+  .delta.neg { color: #32d74b; }
+  .delta.zero { color: #98989d; }
+  .manual-tag {
+    display: inline-block;
+    font-size: 10px;
+    background: #113a5c;
+    color: #6cb8ff;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+  }
+  .del-btn {
+    background: none;
+    border: none;
+    color: #5a5a5d;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .del-btn:hover { color: #ff6961; }
+
+  @media (max-width: 600px) {
+    body { padding: 14px; padding-top: max(14px, env(safe-area-inset-top)); padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+    h1 { font-size: 19px; }
+    .stats { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .stat-card { padding: 9px 8px; }
+    .stat-label { font-size: 9px; }
+    .stat-value { font-size: 16px; }
+    .stat-sub { font-size: 9px; }
+    .card { padding: 12px; }
+    .log-form { gap: 8px; }
+    .field input[type=number] { width: 84px; }
+    .chart-container { height: 260px; }
+    .range-slider input[type=range]::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: 3px; }
+    .range-slider { height: 34px; }
+    .range-slider input[type=range] { height: 34px; }
+    table { font-size: 12px; }
+    th, td { padding: 6px 5px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Weight Tracker</h1>
+  <div class="subtitle" id="subtitle">Loading…</div>
+
+  <div class="banner hidden" id="reminderBanner">
+    <span>You haven't logged your weight this week yet.</span>
+    <button onclick="document.getElementById('weightInput').focus()">Log it now</button>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Current</div>
+      <div class="stat-value" id="statCurrent">—</div>
+      <div class="stat-sub" id="statCurrentDate">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">1-month trend</div>
+      <div class="stat-value" id="statMonthChange">—</div>
+      <div class="stat-sub">vs. ~30 days ago</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Vs. last week</div>
+      <div class="stat-value" id="statWeekChange">—</div>
+      <div class="stat-sub">most recent entry</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Log this week's weight</h2>
+    <div class="log-form">
+      <div class="field">
+        <label for="dateInput">Date</label>
+        <input type="date" id="dateInput" />
+      </div>
+      <div class="field">
+        <label for="weightInput">Weight (lb)</label>
+        <input type="number" id="weightInput" step="0.1" placeholder="e.g. 195.5" />
+      </div>
+      <button onclick="logWeight()">Log Weight</button>
+      <span class="form-msg" id="formMsg"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <h2>Trend</h2>
+      <button class="btn-small" onclick="showAllData()">Show All Data</button>
+    </div>
+    <div class="chart-container">
+      <canvas id="weightChart"></canvas>
+    </div>
+    <div class="range-slider">
+      <div class="range-track"></div>
+      <div class="range-fill" id="sliderFill"></div>
+      <input type="range" id="rangeMin" min="0" max="100" value="0" />
+      <input type="range" id="rangeMax" min="0" max="100" value="100" />
+    </div>
+    <div class="range-label" id="rangeLabel">—</div>
+    <div class="chart-hint">Scroll or drag on the chart to zoom and pan · use the slider to jump to a specific range</div>
+  </div>
+
+  <div class="card">
+    <h2>Recent entries</h2>
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Weight</th><th>Change</th><th></th></tr>
+      </thead>
+      <tbody id="entriesBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card export-card">
+    <button class="export-btn" onclick="exportData()">Export Data to Spreadsheet</button>
+    <div class="export-sub">Downloads all entries as a CSV file you can open in Excel or Google Sheets</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<script>
+// ---- Seed data: historical weekly weights extracted from Apple Health export (lb) ----
+const SEED_DATA = [["2015-09-13", 220.9], ["2015-09-20", 218.5], ["2015-09-27", 217.4], ["2015-10-04", 215.8], ["2015-10-11", 214.5], ["2015-10-18", 212.3], ["2015-10-25", 213.0], ["2015-11-01", 210.8], ["2015-11-08", 209.0], ["2015-11-15", 207.0], ["2015-11-22", 205.7], ["2015-11-29", 205.9], ["2015-12-06", 205.7], ["2015-12-13", 204.8], ["2015-12-20", 205.0], ["2015-12-27", 206.6], ["2016-01-03", 208.3], ["2016-01-10", 207.9], ["2016-01-17", 207.7], ["2016-01-24", 207.7], ["2016-01-31", 207.7], ["2016-02-07", 209.0], ["2016-02-14", 209.9], ["2016-02-21", 210.1], ["2016-02-28", 210.1], ["2016-03-06", 209.7], ["2016-03-13", 208.1], ["2016-03-20", 209.4], ["2016-03-27", 211.6], ["2016-04-03", 213.8], ["2016-04-10", 216.1], ["2016-04-17", 218.5], ["2016-04-24", 220.7], ["2016-05-01", 217.4], ["2016-05-08", 211.9], ["2016-05-15", 213.6], ["2016-05-22", 213.2], ["2016-05-29", 213.4], ["2016-06-05", 213.2], ["2016-06-12", 213.0], ["2016-06-19", 212.1], ["2016-06-26", 214.7], ["2016-07-03", 215.0], ["2016-07-10", 216.1], ["2016-07-17", 215.4], ["2016-07-24", 214.1], ["2016-07-31", 213.6], ["2016-08-07", 215.2], ["2016-08-14", 213.8], ["2016-08-21", 212.1], ["2016-08-28", 212.3], ["2016-09-04", 213.4], ["2016-09-11", 214.5], ["2016-09-18", 214.7], ["2016-09-25", 216.3], ["2016-10-02", 216.9], ["2016-10-09", 216.9], ["2016-10-16", 216.5], ["2016-10-23", 216.3], ["2016-10-30", 216.7], ["2016-11-06", 219.4], ["2016-11-13", 220.7], ["2016-11-20", 220.2], ["2016-11-27", 220.0], ["2016-12-04", 220.0], ["2016-12-11", 221.1], ["2016-12-18", 222.4], ["2016-12-25", 223.8], ["2017-01-01", 224.0], ["2017-01-08", 223.5], ["2017-01-15", 224.0], ["2017-01-22", 224.7], ["2017-01-29", 225.1], ["2017-02-05", 225.1], ["2017-02-12", 224.9], ["2017-02-19", 224.9], ["2017-02-26", 224.7], ["2017-03-05", 224.4], ["2017-03-12", 224.2], ["2017-03-19", 224.2], ["2017-03-26", 224.0], ["2017-04-02", 223.8], ["2017-04-09", 223.5], ["2017-04-16", 223.5], ["2017-04-23", 223.3], ["2017-04-30", 222.7], ["2017-05-07", 222.2], ["2017-05-14", 219.4], ["2017-05-21", 219.1], ["2017-05-28", 219.4], ["2017-06-04", 219.6], ["2017-06-11", 219.8], ["2017-06-18", 220.0], ["2017-06-25", 220.2], ["2017-07-02", 220.5], ["2017-07-09", 220.7], ["2017-07-16", 221.1], ["2017-07-23", 221.3], ["2017-07-30", 221.6], ["2017-08-06", 221.8], ["2017-08-13", 222.0], ["2017-08-20", 222.2], ["2017-08-27", 222.4], ["2017-09-03", 222.7], ["2017-09-10", 222.9], ["2017-09-17", 223.1], ["2017-09-24", 223.3], ["2017-10-01", 223.5], ["2017-10-08", 223.8], ["2017-10-15", 224.0], ["2017-10-22", 224.2], ["2017-10-29", 224.4], ["2017-11-05", 224.7], ["2017-11-12", 224.9], ["2017-11-19", 225.3], ["2017-11-26", 225.5], ["2017-12-03", 225.8], ["2017-12-10", 226.0], ["2017-12-17", 226.2], ["2017-12-24", 226.4], ["2017-12-31", 226.6], ["2018-01-07", 226.9], ["2018-01-14", 227.1], ["2018-01-21", 227.3], ["2018-01-28", 227.5], ["2018-02-04", 227.7], ["2018-02-11", 228.0], ["2018-02-18", 228.2], ["2018-02-25", 228.4], ["2018-03-04", 228.6], ["2018-03-11", 228.8], ["2018-03-18", 229.1], ["2018-03-25", 229.5], ["2018-04-01", 229.7], ["2018-04-08", 229.9], ["2018-04-15", 230.2], ["2018-04-22", 230.4], ["2018-04-29", 230.6], ["2018-05-06", 228.0], ["2018-05-13", 228.0], ["2018-05-20", 225.8], ["2018-05-27", 225.8], ["2018-06-03", 224.9], ["2018-06-10", 224.9], ["2018-06-17", 225.5], ["2018-06-24", 226.4], ["2018-07-01", 227.1], ["2018-07-08", 227.7], ["2018-07-15", 228.6], ["2018-07-22", 229.3], ["2018-07-29", 229.9], ["2018-08-05", 230.2], ["2018-08-12", 230.8], ["2018-08-19", 231.5], ["2018-08-26", 231.7], ["2018-09-02", 231.7], ["2018-09-09", 231.9], ["2018-09-16", 232.1], ["2018-09-23", 232.1], ["2018-09-30", 232.4], ["2018-10-07", 232.8], ["2018-10-14", 233.0], ["2018-10-21", 233.2], ["2018-10-28", 233.5], ["2018-11-04", 233.9], ["2018-11-11", 234.4], ["2018-11-18", 235.0], ["2018-11-25", 235.5], ["2018-12-02", 236.1], ["2018-12-09", 236.6], ["2018-12-16", 237.2], ["2018-12-23", 237.9], ["2018-12-30", 238.3], ["2019-01-06", 237.0], ["2019-01-13", 234.8], ["2019-01-20", 233.7], ["2019-01-27", 231.0], ["2019-02-03", 229.5], ["2019-02-10", 229.7], ["2019-02-17", 229.9], ["2019-02-24", 230.2], ["2019-03-03", 230.4], ["2019-03-10", 230.4], ["2019-03-17", 230.6], ["2019-03-24", 230.8], ["2019-03-31", 231.0], ["2019-04-07", 231.3], ["2019-04-14", 231.5], ["2019-04-21", 231.7], ["2019-04-28", 231.9], ["2019-05-05", 232.1], ["2019-05-12", 232.1], ["2019-05-19", 232.4], ["2019-05-26", 232.6], ["2019-06-02", 232.8], ["2019-06-09", 233.0], ["2019-06-16", 233.2], ["2019-06-23", 233.5], ["2019-06-30", 233.7], ["2019-07-07", 233.7], ["2019-07-14", 233.0], ["2019-07-21", 231.7], ["2019-07-28", 232.4], ["2019-08-04", 232.4], ["2019-08-11", 232.6], ["2019-08-18", 232.6], ["2019-08-25", 232.8], ["2019-09-01", 232.8], ["2019-09-08", 233.0], ["2019-09-15", 233.0], ["2019-09-22", 233.0], ["2019-09-29", 232.8], ["2019-10-06", 233.0], ["2019-10-13", 233.2], ["2019-10-20", 233.5], ["2019-10-27", 233.7], ["2019-11-03", 233.9], ["2019-11-10", 234.1], ["2019-11-17", 234.4], ["2019-11-24", 234.8], ["2019-12-01", 235.0], ["2019-12-08", 235.2], ["2019-12-15", 235.5], ["2019-12-22", 235.7], ["2019-12-29", 235.9], ["2020-01-05", 236.1], ["2020-01-12", 236.3], ["2020-01-19", 236.6], ["2020-01-26", 236.8], ["2020-02-02", 237.0], ["2020-02-09", 237.4], ["2020-02-16", 237.7], ["2020-02-23", 237.9], ["2020-03-01", 238.1], ["2020-03-08", 238.3], ["2020-03-15", 238.5], ["2020-03-22", 238.8], ["2020-03-29", 239.0], ["2020-04-05", 239.2], ["2020-04-12", 239.4], ["2020-04-19", 239.6], ["2020-04-26", 239.9], ["2020-05-03", 240.3], ["2020-05-10", 241.4], ["2020-05-17", 241.6], ["2020-05-24", 241.6], ["2020-05-31", 241.6], ["2020-06-07", 241.4], ["2020-06-14", 241.4], ["2020-06-21", 241.2], ["2020-06-28", 241.2], ["2020-07-05", 241.2], ["2020-07-12", 241.0], ["2020-07-19", 241.0], ["2020-07-26", 241.0], ["2020-08-02", 240.5], ["2020-08-09", 240.1], ["2020-08-16", 240.3], ["2020-08-23", 240.1], ["2020-08-30", 238.3], ["2020-09-06", 237.0], ["2020-09-13", 236.8], ["2020-09-20", 237.7], ["2020-09-27", 237.2], ["2020-10-04", 236.6], ["2020-10-11", 236.6], ["2020-10-18", 236.6], ["2020-10-25", 236.8], ["2020-11-01", 237.0], ["2020-11-08", 237.2], ["2020-11-15", 237.2], ["2020-11-22", 237.4], ["2020-11-29", 237.7], ["2020-12-06", 237.9], ["2020-12-13", 238.5], ["2020-12-20", 239.0], ["2020-12-27", 239.4], ["2021-01-03", 239.9], ["2021-01-10", 240.3], ["2021-01-17", 241.0], ["2021-01-24", 241.4], ["2021-01-31", 241.8], ["2021-02-07", 242.3], ["2021-02-14", 242.9], ["2021-02-21", 243.4], ["2021-02-28", 243.8], ["2021-03-07", 244.3], ["2021-03-14", 244.9], ["2021-03-21", 245.4], ["2021-03-28", 245.8], ["2021-04-04", 246.0], ["2021-04-11", 245.6], ["2021-04-18", 245.2], ["2021-04-25", 244.9], ["2021-05-02", 244.5], ["2021-05-09", 244.1], ["2021-05-16", 243.6], ["2021-05-23", 243.4], ["2021-05-30", 242.9], ["2021-06-06", 242.5], ["2021-06-13", 241.2], ["2021-06-20", 239.0], ["2021-06-27", 237.2], ["2021-07-04", 235.7], ["2021-07-11", 234.4], ["2021-07-18", 232.8], ["2021-07-25", 232.4], ["2021-08-01", 231.3], ["2021-08-08", 230.8], ["2021-08-15", 228.8], ["2021-08-22", 226.9], ["2021-08-29", 226.2], ["2021-09-05", 226.2], ["2021-09-12", 225.1], ["2021-09-19", 222.7], ["2021-09-26", 221.3], ["2021-10-03", 220.2], ["2021-10-10", 220.2], ["2021-10-17", 220.7], ["2021-10-24", 220.5], ["2021-10-31", 220.0], ["2021-11-07", 220.0], ["2021-11-14", 220.5], ["2021-11-21", 221.1], ["2021-11-28", 221.6], ["2021-12-05", 222.2], ["2021-12-12", 222.9], ["2021-12-19", 223.3], ["2021-12-26", 224.0], ["2022-01-02", 224.7], ["2022-01-09", 225.1], ["2022-01-16", 225.8], ["2022-01-23", 226.2], ["2022-01-30", 226.9], ["2022-02-06", 227.5], ["2022-02-13", 228.0], ["2022-02-20", 228.6], ["2022-02-27", 229.3], ["2022-03-06", 229.7], ["2022-03-13", 230.4], ["2022-03-20", 230.8], ["2022-03-27", 231.5], ["2022-04-03", 232.1], ["2022-04-10", 232.6], ["2022-04-17", 233.2], ["2022-04-24", 233.7], ["2022-05-01", 234.4], ["2022-05-08", 235.0], ["2022-05-15", 235.5], ["2022-05-22", 236.1], ["2022-05-29", 236.8], ["2022-06-05", 237.2], ["2022-06-12", 237.9], ["2022-06-19", 238.3], ["2022-06-26", 239.0], ["2022-07-03", 239.6], ["2022-07-10", 240.1], ["2022-07-17", 240.7], ["2022-07-24", 241.2], ["2022-07-31", 241.4], ["2022-08-07", 241.8], ["2022-08-14", 242.1], ["2022-08-21", 242.5], ["2022-08-28", 242.9], ["2022-09-04", 243.2], ["2022-09-11", 243.6], ["2022-09-18", 243.8], ["2022-09-25", 244.3], ["2022-10-02", 244.5], ["2022-10-09", 244.9], ["2022-10-16", 245.4], ["2022-10-23", 245.6], ["2022-10-30", 246.0], ["2022-11-06", 246.3], ["2022-11-13", 246.7], ["2022-11-20", 246.9], ["2022-11-27", 247.4], ["2022-12-04", 247.8], ["2022-12-11", 248.0], ["2022-12-18", 248.5], ["2022-12-25", 248.7], ["2023-01-01", 249.1], ["2023-01-08", 246.2], ["2023-01-15", 247.0], ["2023-01-22", 243.6], ["2023-01-29", 244.4], ["2023-02-05", 245.0], ["2023-02-12", 245.4], ["2023-02-19", 245.8], ["2023-02-26", 246.4], ["2023-03-05", 246.5], ["2023-03-12", 246.7], ["2023-03-19", 247.1], ["2023-03-26", 247.4], ["2023-04-02", 247.6], ["2023-04-09", 247.8], ["2023-04-16", 248.0], ["2023-04-23", 248.2], ["2023-04-30", 248.7], ["2023-05-07", 248.9], ["2023-05-14", 249.1], ["2023-05-21", 249.3], ["2023-05-28", 249.6], ["2023-06-04", 249.8], ["2023-06-11", 250.0], ["2023-06-18", 250.4], ["2023-06-25", 250.7], ["2023-07-02", 250.9], ["2023-07-09", 251.1], ["2023-07-16", 251.3], ["2023-07-23", 251.5], ["2023-07-30", 252.0], ["2023-08-06", 252.2], ["2023-08-13", 252.4], ["2023-08-20", 252.7], ["2023-08-27", 252.9], ["2023-09-03", 253.1], ["2023-09-10", 253.3], ["2023-09-17", 253.8], ["2023-09-24", 254.0], ["2023-10-01", 254.2], ["2023-10-08", 254.4], ["2023-10-15", 254.6], ["2023-10-22", 254.6], ["2023-10-29", 252.7], ["2023-11-05", 251.1], ["2023-11-12", 249.8], ["2023-11-19", 249.8], ["2023-11-26", 249.8], ["2023-12-03", 249.8], ["2023-12-10", 249.8], ["2023-12-17", 250.0], ["2023-12-24", 250.0], ["2023-12-31", 250.0], ["2024-01-07", 250.2], ["2024-01-14", 250.2], ["2024-01-21", 250.2], ["2024-01-28", 250.2], ["2024-02-04", 250.4], ["2024-02-11", 250.4], ["2024-02-18", 250.4], ["2024-02-25", 250.4], ["2024-03-03", 250.7], ["2024-03-10", 250.7], ["2024-03-17", 250.7], ["2024-03-24", 250.7], ["2024-03-31", 250.9], ["2024-04-07", 250.9], ["2024-04-14", 250.9], ["2024-04-21", 250.9], ["2024-04-28", 251.1], ["2024-05-05", 251.1], ["2024-05-12", 251.1], ["2024-05-19", 251.3], ["2024-05-26", 251.3], ["2024-06-02", 251.3], ["2024-06-09", 251.3], ["2024-06-16", 251.5], ["2024-06-23", 251.5], ["2024-06-30", 251.5], ["2024-07-07", 251.5], ["2024-07-14", 251.8], ["2024-07-21", 251.8], ["2024-07-28", 251.8], ["2024-08-04", 251.8], ["2024-08-11", 252.0], ["2024-08-18", 252.0], ["2024-08-25", 252.0], ["2024-09-01", 252.2], ["2024-09-08", 251.1], ["2024-09-15", 251.3], ["2024-09-22", 251.5], ["2024-09-29", 251.8], ["2024-10-06", 252.2], ["2024-10-13", 252.4], ["2024-10-20", 252.7], ["2024-10-27", 252.9], ["2024-11-03", 253.1], ["2024-11-10", 253.5], ["2024-11-17", 253.8], ["2024-11-24", 254.0], ["2024-12-01", 254.2], ["2024-12-08", 254.4], ["2024-12-15", 254.9], ["2024-12-22", 255.1], ["2024-12-29", 255.3], ["2025-01-05", 255.5], ["2025-01-12", 255.7], ["2025-01-19", 256.2], ["2025-01-26", 256.4], ["2025-02-02", 256.6], ["2025-02-09", 256.8], ["2025-02-16", 257.1], ["2025-02-23", 257.3], ["2025-03-02", 257.7], ["2025-03-09", 257.9], ["2025-03-16", 258.2], ["2025-03-23", 258.4], ["2025-03-30", 258.6], ["2025-04-06", 259.0], ["2025-04-13", 259.3], ["2025-04-20", 259.5], ["2025-04-27", 259.7], ["2025-05-04", 259.5], ["2025-05-11", 258.2], ["2025-05-18", 257.1], ["2025-05-25", 256.0], ["2025-06-01", 254.9], ["2025-06-08", 253.8], ["2025-06-15", 252.4], ["2025-06-22", 251.3], ["2025-06-29", 250.2], ["2025-07-06", 249.1], ["2025-07-13", 247.8], ["2025-07-20", 243.8], ["2025-07-27", 241.6], ["2025-08-03", 237.4], ["2025-08-10", 236.3], ["2025-08-17", 236.6], ["2025-08-24", 235.0], ["2025-08-31", 231.9], ["2025-09-07", 231.9], ["2025-09-14", 230.8], ["2025-09-21", 228.6], ["2025-09-28", 228.4], ["2025-10-05", 226.9], ["2025-10-12", 225.3], ["2025-10-19", 224.0], ["2025-10-26", 220.9], ["2025-11-02", 221.3], ["2025-11-09", 220.0], ["2025-11-16", 219.8], ["2025-11-23", 218.0], ["2025-11-30", 217.6], ["2025-12-07", 215.8], ["2025-12-14", 216.3], ["2025-12-21", 215.6], ["2025-12-28", 214.1], ["2026-01-04", 213.6], ["2026-01-11", 212.7], ["2026-01-18", 209.8], ["2026-01-25", 209.0], ["2026-02-01", 206.8], ["2026-02-08", 205.2], ["2026-02-15", 204.4], ["2026-02-22", 204.0], ["2026-03-01", 202.4], ["2026-03-08", 203.5], ["2026-03-15", 202.0], ["2026-03-29", 201.0], ["2026-04-05", 201.0], ["2026-04-12", 200.0], ["2026-04-19", 200.4], ["2026-05-10", 204.0], ["2026-05-17", 202.6], ["2026-05-31", 201.8], ["2026-06-07", 201.0], ["2026-06-14", 202.0], ["2026-06-21", 198.6], ["2026-07-05", 196.2], ["2026-07-12", 196.4], ["2026-07-19", 196.2]];
+
+const STORAGE_KEY = "weight_tracker_manual_entries_v1";
+
+function isoWeekKey(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  const target = new Date(d.valueOf());
+  const dayNr = (d.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = new Date(target.getFullYear(), 0, 4);
+  const diff = (target - firstThursday) / 86400000;
+  const week = 1 + Math.round((diff - (3 - (firstThursday.getDay() + 6) % 7)) / 7);
+  return `${target.getFullYear()}-W${String(week).padStart(2, "0")}`;
+}
+
+function loadManualEntries() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveManualEntries(entries) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+
+function getCombinedEntries() {
+  const manual = loadManualEntries();
+  const byWeek = new Map();
+  for (const [date, weight] of SEED_DATA) {
+    byWeek.set(isoWeekKey(date), { date, weight, manual: false });
+  }
+  for (const e of manual) {
+    byWeek.set(isoWeekKey(e.date), { date: e.date, weight: e.weight, manual: true });
+  }
+  return Array.from(byWeek.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function findClosestEntry(entries, targetDate) {
+  // entries sorted ascending by date; find the entry whose date is closest to targetDate
+  let best = null;
+  let bestDiff = Infinity;
+  for (const e of entries) {
+    const diff = Math.abs(new Date(e.date) - new Date(targetDate));
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = e;
+    }
+  }
+  return best;
+}
+
+function fmt(n) {
+  return n.toFixed(1);
+}
+
+function deltaClass(v) {
+  if (v > 0.05) return "pos";
+  if (v < -0.05) return "neg";
+  return "zero";
+}
+
+let chart = null;
+let fullEntries = [];
+let viewMin = 0;
+let viewMax = 0;
+
+const CHART_GRID = "#2c2c2e";
+const CHART_TICK = "#98989d";
+const MIN_SPAN = 3; // smallest number of points visible when fully zoomed in
+
+function render() {
+  const entries = getCombinedEntries();
+  if (entries.length === 0) {
+    document.getElementById("subtitle").textContent = "No entries yet — log your first weight below.";
+    return;
+  }
+
+  const first = entries[0];
+  const last = entries[entries.length - 1];
+  const prev = entries.length > 1 ? entries[entries.length - 2] : null;
+
+  document.getElementById("subtitle").textContent =
+    `${entries.length} weekly entries · ${first.date} to ${last.date}`;
+
+  document.getElementById("statCurrent").textContent = fmt(last.weight) + " lb";
+  document.getElementById("statCurrentDate").textContent = last.date;
+
+  const oneMonthAgo = new Date(last.date);
+  oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+  const monthEl = document.getElementById("statMonthChange");
+  if (new Date(first.date) <= oneMonthAgo) {
+    const monthAgoEntry = findClosestEntry(entries, oneMonthAgo.toISOString().slice(0, 10));
+    const mc = last.weight - monthAgoEntry.weight;
+    monthEl.textContent = (mc >= 0 ? "+" : "") + fmt(mc) + " lb";
+    monthEl.className = "stat-value " + deltaClass(mc);
+  } else {
+    monthEl.textContent = "—";
+    monthEl.className = "stat-value";
+  }
+
+  const weekChangeEl = document.getElementById("statWeekChange");
+  if (prev) {
+    const wc = last.weight - prev.weight;
+    weekChangeEl.textContent = (wc >= 0 ? "+" : "") + fmt(wc) + " lb";
+    weekChangeEl.className = "stat-value " + deltaClass(wc);
+  } else {
+    weekChangeEl.textContent = "—";
+  }
+
+  // reminder banner: is there an entry for the current ISO week?
+  const todayKey = isoWeekKey(new Date().toISOString().slice(0, 10));
+  const lastKey = isoWeekKey(last.date);
+  const banner = document.getElementById("reminderBanner");
+  if (todayKey !== lastKey) {
+    banner.classList.remove("hidden");
+  } else {
+    banner.classList.add("hidden");
+  }
+
+  // table: most recent 15, newest first
+  const tbody = document.getElementById("entriesBody");
+  tbody.innerHTML = "";
+  const recent = entries.slice(-15).reverse();
+  recent.forEach((e, idx) => {
+    const originalIdx = entries.length - 1 - idx;
+    const prevE = entries[originalIdx - 1];
+    const change = prevE ? e.weight - prevE.weight : null;
+    const tr = document.createElement("tr");
+    const manualTag = e.manual ? '<span class="manual-tag">logged</span>' : "";
+    const deltaHtml = change === null
+      ? "—"
+      : `<span class="delta ${deltaClass(change)}">${change >= 0 ? "+" : ""}${fmt(change)} lb</span>`;
+    const delBtn = e.manual
+      ? `<button class="del-btn" onclick="deleteEntry('${e.date}')" title="Delete">✕</button>`
+      : "";
+    tr.innerHTML = `<td>${e.date}${manualTag}</td><td class="num">${fmt(e.weight)} lb</td><td>${deltaHtml}</td><td>${delBtn}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  fullEntries = entries;
+  viewMin = 0;
+  viewMax = entries.length - 1;
+  setupRangeSlider();
+  drawChart();
+}
+
+function drawChart() {
+  const container = document.querySelector(".chart-container");
+  const existingNotice = container.querySelector(".chart-error");
+  if (existingNotice) existingNotice.remove();
+
+  if (typeof Chart === "undefined") {
+    const notice = document.createElement("div");
+    notice.className = "chart-error";
+    notice.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#98989d;font-size:13px;padding:20px;";
+    notice.textContent = "Chart library failed to load. Try reloading the page.";
+    container.appendChild(notice);
+    updateRangeUI();
+    return;
+  }
+
+  const slice = fullEntries.slice(viewMin, viewMax + 1);
+  const labels = slice.map(e => e.date);
+  const values = slice.map(e => e.weight);
+  const pointColors = slice.map(e => e.manual ? "#0a84ff" : "#6e6e73");
+  const pointRadius = slice.length > 80 ? 0 : 3;
+
+  try {
+    const ctx = document.getElementById("weightChart").getContext("2d");
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Weight (lb)",
+          data: values,
+          borderColor: "#0a84ff",
+          backgroundColor: "rgba(10,132,255,0.12)",
+          borderWidth: 2,
+          pointRadius: pointRadius,
+          pointBackgroundColor: pointColors,
+          fill: true,
+          tension: 0.25,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { maxTicksLimit: 10, autoSkip: true, color: CHART_TICK }, grid: { color: CHART_GRID } },
+          y: { title: { display: true, text: "lb", color: CHART_TICK }, ticks: { color: CHART_TICK }, grid: { color: CHART_GRID } }
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Chart render failed:", err);
+    const notice = document.createElement("div");
+    notice.className = "chart-error";
+    notice.style.cssText = "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#98989d;font-size:13px;padding:20px;";
+    notice.textContent = "Couldn't render the chart. Try reloading the page.";
+    container.appendChild(notice);
+  }
+
+  updateRangeUI();
+}
+
+function clampView(min, max) {
+  const n = fullEntries.length;
+  let span = max - min;
+  if (span < MIN_SPAN) span = MIN_SPAN;
+  if (min < 0) { max = min + span; min = 0; }
+  if (max > n - 1) { min = (n - 1) - span; max = n - 1; }
+  min = Math.max(0, Math.round(min));
+  max = Math.min(n - 1, Math.round(max));
+  return [min, max];
+}
+
+function setupRangeSlider() {
+  const n = fullEntries.length;
+  const minSlider = document.getElementById("rangeMin");
+  const maxSlider = document.getElementById("rangeMax");
+  minSlider.min = 0;
+  minSlider.max = n - 1;
+  minSlider.value = viewMin;
+  maxSlider.min = 0;
+  maxSlider.max = n - 1;
+  maxSlider.value = viewMax;
+}
+
+function onRangeSliderInput() {
+  const minSlider = document.getElementById("rangeMin");
+  const maxSlider = document.getElementById("rangeMax");
+  let minV = parseInt(minSlider.value, 10);
+  let maxV = parseInt(maxSlider.value, 10);
+  if (maxV - minV < MIN_SPAN) {
+    if (document.activeElement === minSlider) {
+      minV = maxV - MIN_SPAN;
+    } else {
+      maxV = minV + MIN_SPAN;
+    }
+  }
+  [viewMin, viewMax] = clampView(minV, maxV);
+  minSlider.value = viewMin;
+  maxSlider.value = viewMax;
+  drawChart();
+}
+
+function updateRangeUI() {
+  const n = fullEntries.length - 1 || 1;
+  const minPct = (viewMin / n) * 100;
+  const maxPct = (viewMax / n) * 100;
+  const fill = document.getElementById("sliderFill");
+  if (fill) {
+    fill.style.left = minPct + "%";
+    fill.style.width = Math.max(0, maxPct - minPct) + "%";
+  }
+  const label = document.getElementById("rangeLabel");
+  if (label && fullEntries.length) {
+    const count = viewMax - viewMin + 1;
+    label.textContent = `${fullEntries[viewMin].date} to ${fullEntries[viewMax].date}  ·  ${count} of ${fullEntries.length} weeks`;
+  }
+}
+
+function showAllData() {
+  viewMin = 0;
+  viewMax = fullEntries.length - 1;
+  const minSlider = document.getElementById("rangeMin");
+  const maxSlider = document.getElementById("rangeMax");
+  minSlider.value = viewMin;
+  maxSlider.value = viewMax;
+  drawChart();
+}
+
+// ---- Chart wheel-zoom and drag-to-pan ----
+let isDragging = false;
+let dragStartX = 0;
+let dragStartMin = 0;
+let dragStartMax = 0;
+
+function setupChartInteractions() {
+  const canvasEl = document.getElementById("weightChart");
+
+  canvasEl.addEventListener("wheel", function (e) {
+    if (!fullEntries.length) return;
+    e.preventDefault();
+    const rect = canvasEl.getBoundingClientRect();
+    const relX = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const currentSpan = viewMax - viewMin;
+    const zoomFactor = e.deltaY < 0 ? 0.85 : 1.18;
+    let newSpan = Math.round(currentSpan * zoomFactor);
+    newSpan = Math.max(MIN_SPAN, Math.min(fullEntries.length - 1, newSpan));
+    const centerIndex = viewMin + relX * currentSpan;
+    const newMin = centerIndex - relX * newSpan;
+    const newMax = newMin + newSpan;
+    [viewMin, viewMax] = clampView(newMin, newMax);
+    document.getElementById("rangeMin").value = viewMin;
+    document.getElementById("rangeMax").value = viewMax;
+    drawChart();
+  }, { passive: false });
+
+  canvasEl.addEventListener("mousedown", function (e) {
+    if (!fullEntries.length) return;
+    isDragging = true;
+    dragStartX = e.clientX;
+    dragStartMin = viewMin;
+    dragStartMax = viewMax;
+    canvasEl.style.cursor = "grabbing";
+  });
+
+  window.addEventListener("mousemove", function (e) {
+    if (!isDragging) return;
+    const rect = canvasEl.getBoundingClientRect();
+    const deltaPx = e.clientX - dragStartX;
+    const span = dragStartMax - dragStartMin;
+    const deltaIndex = (deltaPx / rect.width) * span;
+    const newMin = dragStartMin - deltaIndex;
+    const newMax = dragStartMax - deltaIndex;
+    [viewMin, viewMax] = clampView(newMin, newMax);
+    document.getElementById("rangeMin").value = viewMin;
+    document.getElementById("rangeMax").value = viewMax;
+    drawChart();
+  });
+
+  window.addEventListener("mouseup", function () {
+    if (isDragging) {
+      isDragging = false;
+      canvasEl.style.cursor = "grab";
+    }
+  });
+
+  // ---- touch: single-finger pan, two-finger pinch-to-zoom ----
+  let pinchStartDist = 0;
+  let pinchStartMin = 0;
+  let pinchStartMax = 0;
+  let touchStartX = 0;
+  let touchStartMin = 0;
+  let touchStartMax = 0;
+  let touchMode = null; // "pan" | "pinch"
+
+  function touchDist(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  canvasEl.addEventListener("touchstart", function (e) {
+    if (!fullEntries.length) return;
+    if (e.touches.length === 2) {
+      touchMode = "pinch";
+      pinchStartDist = touchDist(e.touches);
+      pinchStartMin = viewMin;
+      pinchStartMax = viewMax;
+    } else if (e.touches.length === 1) {
+      touchMode = "pan";
+      touchStartX = e.touches[0].clientX;
+      touchStartMin = viewMin;
+      touchStartMax = viewMax;
+    }
+  }, { passive: true });
+
+  canvasEl.addEventListener("touchmove", function (e) {
+    if (!fullEntries.length || !touchMode) return;
+    e.preventDefault();
+    const rect = canvasEl.getBoundingClientRect();
+
+    if (touchMode === "pinch" && e.touches.length === 2) {
+      const dist = touchDist(e.touches);
+      const ratio = pinchStartDist / Math.max(dist, 1);
+      const span = pinchStartMax - pinchStartMin;
+      let newSpan = Math.round(span * ratio);
+      newSpan = Math.max(MIN_SPAN, Math.min(fullEntries.length - 1, newSpan));
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const relX = Math.min(1, Math.max(0, (midX - rect.left) / rect.width));
+      const centerIndex = pinchStartMin + relX * span;
+      const newMin = centerIndex - relX * newSpan;
+      const newMax = newMin + newSpan;
+      [viewMin, viewMax] = clampView(newMin, newMax);
+      document.getElementById("rangeMin").value = viewMin;
+      document.getElementById("rangeMax").value = viewMax;
+      drawChart();
+    } else if (touchMode === "pan" && e.touches.length === 1) {
+      const deltaPx = e.touches[0].clientX - touchStartX;
+      const span = touchStartMax - touchStartMin;
+      const deltaIndex = (deltaPx / rect.width) * span;
+      const newMin = touchStartMin - deltaIndex;
+      const newMax = touchStartMax - deltaIndex;
+      [viewMin, viewMax] = clampView(newMin, newMax);
+      document.getElementById("rangeMin").value = viewMin;
+      document.getElementById("rangeMax").value = viewMax;
+      drawChart();
+    }
+  }, { passive: false });
+
+  canvasEl.addEventListener("touchend", function (e) {
+    if (e.touches.length === 0) {
+      touchMode = null;
+    } else if (e.touches.length === 1) {
+      // dropped from pinch to a single finger: restart pan baseline
+      touchMode = "pan";
+      touchStartX = e.touches[0].clientX;
+      touchStartMin = viewMin;
+      touchStartMax = viewMax;
+    }
+  });
+
+  document.getElementById("rangeMin").addEventListener("input", onRangeSliderInput);
+  document.getElementById("rangeMax").addEventListener("input", onRangeSliderInput);
+}
+
+function exportData() {
+  const entries = getCombinedEntries();
+  const header = "Date,Weight (lb),Source\n";
+  const rows = entries.map(e => `${e.date},${e.weight},${e.manual ? "Logged" : "Apple Health"}`).join("\n");
+  const csv = header + rows;
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `weight_data_export_${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function logWeight() {
+  const dateEl = document.getElementById("dateInput");
+  const weightEl = document.getElementById("weightInput");
+  const msg = document.getElementById("formMsg");
+
+  const date = dateEl.value;
+  const weight = parseFloat(weightEl.value);
+
+  if (!date || isNaN(weight) || weight <= 0) {
+    msg.textContent = "Enter a valid date and weight.";
+    msg.style.color = "#ff6961";
+    return;
+  }
+
+  const manual = loadManualEntries();
+  const key = isoWeekKey(date);
+  const filtered = manual.filter(e => isoWeekKey(e.date) !== key);
+  filtered.push({ date, weight });
+  saveManualEntries(filtered);
+
+  msg.textContent = "Saved!";
+  msg.style.color = "#32d74b";
+  weightEl.value = "";
+  setTimeout(() => { msg.textContent = ""; }, 2500);
+
+  render();
+}
+
+function deleteEntry(date) {
+  const manual = loadManualEntries();
+  const key = isoWeekKey(date);
+  saveManualEntries(manual.filter(e => isoWeekKey(e.date) !== key));
+  render();
+}
+
+document.getElementById("dateInput").value = new Date().toISOString().slice(0, 10);
+setupChartInteractions();
+try {
+  render();
+} catch (err) {
+  console.error("Initial render failed:", err);
+}
+</script>
+</body>
+</html>
