@@ -25,32 +25,6 @@
   h1 { font-size: 22px; margin: 0 0 4px 0; }
   .subtitle { color: #98989d; font-size: 13px; margin-bottom: 20px; }
 
-  .banner {
-    background: #3a2c0f;
-    border: 1px solid #6b4e14;
-    color: #ffcc66;
-    padding: 12px 16px;
-    border-radius: 10px;
-    font-size: 14px;
-    margin-bottom: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  .banner.hidden { display: none; }
-  .banner button {
-    background: #ffcc66;
-    color: #1c1200;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    cursor: pointer;
-    white-space: nowrap;
-    font-weight: 600;
-  }
-
   .stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -286,11 +260,6 @@
   <h1>Weight Tracker</h1>
   <div class="subtitle" id="subtitle">Loading…</div>
 
-  <div class="banner hidden" id="reminderBanner">
-    <span>You haven't logged your weight this week yet.</span>
-    <button onclick="document.getElementById('weightInput').focus()">Log it now</button>
-  </div>
-
   <div class="stats">
     <div class="stat-card">
       <div class="stat-label">Current</div>
@@ -481,16 +450,6 @@ function render() {
     weekChangeEl.className = "stat-value " + deltaClass(wc);
   } else {
     weekChangeEl.textContent = "—";
-  }
-
-  // reminder banner: is there an entry for the current ISO week?
-  const todayKey = isoWeekKey(new Date().toISOString().slice(0, 10));
-  const lastKey = isoWeekKey(last.date);
-  const banner = document.getElementById("reminderBanner");
-  if (todayKey !== lastKey) {
-    banner.classList.remove("hidden");
-  } else {
-    banner.classList.add("hidden");
   }
 
   // table: most recent 15, newest first
